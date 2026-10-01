@@ -39,11 +39,23 @@ class ApplicationState extends ChangeNotifier {
         .collection('attendees')
         .doc(FirebaseAuth.instance.currentUser!.uid);
     if (attending == Attending.yes) {
-      userDoc.set(<String, dynamic>{'attending': true});
+      // merge: true makes sure to yes/no doesnt reset the numebr
+      userDoc.set(<String, dynamic>{'attending': true}, SetOptions(merge: true));
     } else {
-      userDoc.set(<String, dynamic>{'attending': false});
+      userDoc.set(<String, dynamic>{'attending': false}, SetOptions(merge: true));
     }
   }
+
+  // add a guests varible and make sure 
+  int _guests = 0;
+  int get guests => _guests;
+  set guests(int count) {
+    FirebaseFirestore.instance
+        .collection('attendees')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        // saves previous answers
+        .set(<String, dynamic>{'guests': count}, SetOptions(merge: true));
+}
 
   Future<void> init() async {
     await Firebase.initializeApp(
@@ -58,7 +70,12 @@ class ApplicationState extends ChangeNotifier {
         .where('attending', isEqualTo: true)
         .snapshots()
         .listen((snapshot) {
-      _attendees = snapshot.docs.length;
+          // switching attendies from the length of the list to the number of people going
+      _attendees = 0;
+      for (final doc in snapshot.docs) {
+        final guests = (doc.data()['guests'] as int?) ?? 0;
+        _attendees += guests > 0 ? guests : 1;
+      }
       notifyListeners();
     });
 
@@ -87,6 +104,8 @@ class ApplicationState extends ChangeNotifier {
             .doc(user.uid)
             .snapshots()
             .listen((snapshot) {
+              // read the guest numerb back
+            _guests = (snapshot.data()?['guests'] as int?) ?? 0;
           if (snapshot.data() != null) {
             if (snapshot.data()!['attending'] as bool) {
               _attending = Attending.yes;

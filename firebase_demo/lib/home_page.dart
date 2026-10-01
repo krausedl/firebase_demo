@@ -57,6 +57,17 @@ class HomePage extends StatelessWidget {
                     state: appState.attending,
                     onSelection: (attending) => appState.attending = attending,
                   ),
+                  if (appState.attending == Attending.yes)
+                    // make the box show up to allow to ask for numbers
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextFormField(
+                        initialValue: appState.guests.toString(),
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'How many people?'),
+                        onChanged: (value) => appState.guests = int.tryParse(value) ?? 0,
+                      ),
+                    ),
                   const Header('Discussion'),
                   GuestBook(
                     addMessage: (message) =>
